@@ -2,7 +2,7 @@
 
 Minecraft-Bauprojekte im Browser in 3D planen: Blöcke aus Java Edition 26.3 setzen, Gebäude Ebene für Ebene nachbauen, Materiallisten in Stapeln ablesen und Fotos in Blöcke oder 3D-Blaupausen umwandeln.
 
-**App öffnen:** https://hydra-nt1.github.io/blockplaner/
+**App öffnen:** https://hydra-nt1.github.io/Blockplaner/
 
 ## Für Freunde
 
