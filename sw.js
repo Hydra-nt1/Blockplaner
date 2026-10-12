@@ -1,7 +1,7 @@
 // Blockplaner – Service Worker: macht die App installierbar und offline nutzbar.
 // Die App selbst wird immer zuerst frisch geladen (Updates kommen sofort an),
 // Bibliotheken und Schriften kommen aus dem Zwischenspeicher.
-const CACHE = 'blockplaner-202610121251';
+const CACHE = 'blockplaner-202610121409';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png'];
 const LIBS = [
   'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js',

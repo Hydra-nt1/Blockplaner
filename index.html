@@ -109,7 +109,19 @@ img.ico{image-rendering:auto}
 #p-blocks{display:flex;flex-direction:column;padding:0}
 #p-blocks[hidden]{display:none}
 .pal-head{padding:12px 16px 8px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
-.pack{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px;background:var(--raised)}
+.pack{display:flex;flex-direction:column;gap:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:8px;background:var(--raised)}
+.pack-row{display:flex;align-items:center;gap:10px}
+.packlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.packlist li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:center;padding:4px 6px;border-radius:6px;background:color-mix(in srgb,var(--ink) 5%,var(--panel));font-size:12px}
+.packlist img,.packlist .pk-ph{width:28px;height:28px;border-radius:4px;image-rendering:pixelated;background:color-mix(in srgb,var(--ink) 12%,var(--panel))}
+.packlist .pk-t{min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.packlist .pk-t b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.packlist .pk-t span{color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.packlist .pk-b{display:flex;gap:2px}
+.packlist .pk-b button{border:0;background:none;cursor:pointer;width:24px;height:24px;border-radius:5px;color:var(--muted);font-size:13px;line-height:1}
+.packlist .pk-b button:hover:not(:disabled){background:var(--accent-soft);color:var(--ink)}
+.packlist .pk-b button:disabled{opacity:.3;cursor:default}
+.packlist .pk-b .x:hover{color:var(--danger)}
 .pack.on{border-style:solid;border-color:var(--accent)}
 .pack-text{flex:1;min-width:0;display:flex;flex-direction:column;font-size:12px;line-height:1.3}
 .pack-text span{color:var(--muted);overflow-wrap:anywhere}
@@ -343,9 +355,11 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
     <section class="panel" role="tabpanel" id="p-blocks" aria-labelledby="t-blocks">
       <div class="pal-head">
         <div class="pack" id="pack">
-          <div class="pack-text"><strong id="packTitle">Ersatztexturen aktiv</strong><span id="packSub">Für spielgetreue Texturen deine Minecraft-Datei laden.</span></div>
-          <label class="btn file" id="packBtn">Spieldatei laden<input type="file" id="packIn" accept=".jar,.zip"></label>
-          <button class="btn" id="packOff" hidden>Entfernen</button>
+          <div class="pack-row">
+            <div class="pack-text"><strong id="packTitle">Ersatztexturen aktiv</strong><span id="packSub">Für spielgetreue Texturen deine Minecraft-Datei laden.</span></div>
+            <label class="btn file" id="packBtn"><span id="packBtnText">Spieldatei laden</span><input type="file" id="packIn" accept=".jar,.zip" multiple></label>
+          </div>
+          <ul class="packlist" id="packList" hidden></ul>
         </div>
         <div class="hotbar" id="hotbar" aria-label="Zuletzt benutzt"></div>
         <div class="search">
@@ -454,7 +468,9 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
         <dt>macOS</dt><dd><code>~/Library/Application Support/minecraft/versions/26.3/26.3.jar</code></dd>
         <dt>Linux</dt><dd><code>~/.minecraft/versions/26.3/26.3.jar</code></dd>
       </dl>
-      <p class="small" style="margin-top:8px">Ein Ressourcenpaket (.zip) funktioniert genauso. Blöcke, die das Paket nicht enthält, behalten die Ersatztextur.</p>
+      <h3>Texturpakete</h3>
+      <p class="small">Über „Hinzufügen“ legst du Texturpakete (.zip, für Minecraft ab 1.13) über die Spieldatei, wie in Minecraft. Oben stehende Pakete haben Vorrang, mit ▲ ▼ änderst du die Reihenfolge, mit × entfernst du ein Paket. Blöcke, die kein Paket enthält, kommen aus der Spieldatei. Ohne Spieldatei behalten sie die Ersatztextur.</p>
+      <p class="small">Übernommen werden die Blocktexturen in jeder Auflösung. Eigene 3D-Formen, verbundene Texturen (CTM) und Effekte aus OptiFine- oder Fabric-Paketen werden nicht unterstützt. Entpackte Pakete vorher zu einer .zip packen.</p>
     </section>
   </aside>
 </div>
@@ -1515,49 +1531,104 @@ addEventListener('keyup',e=>{if(e.key==='Shift'&&lastEvent)hover({clientX:lastEv
 /* ---------- Spieldatei / Ressourcenpaket ---------- */
 function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('blockplaner',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
 async function idb(mode,fn){const db=await idbOpen();return new Promise((res,rej)=>{const tx=db.transaction('kv',mode),q=fn(tx.objectStore('kv'));tx.oncomplete=()=>res(q&&q.result);tx.onerror=()=>rej(tx.error);});}
-function packState(title,sub,on){$('#packTitle').textContent=title;$('#packSub').textContent=sub;$('#pack').classList.toggle('on',!!on);$('#packOff').hidden=!on;}
+function packState(title,sub,on){$('#packTitle').textContent=title;$('#packSub').textContent=sub;$('#pack').classList.toggle('on',!!on);}
+// Texturquellen wie in Minecraft übereinander: unten die Spieldatei, darüber Texturpakete.
+// Weiter oben liegende Pakete haben Vorrang; was keinem Paket fehlt, kommt von darunter.
+let layers=[]; // [{id,name,kind:'game'|'pack',desc,icon,tex:{name:Uint8Array},canvases?:Map}]
 async function readPack(file){
   if(!window.JSZip)throw new Error('Die Zip-Bibliothek konnte nicht geladen werden.');
   const zip=await JSZip.loadAsync(file);
-  const out={};
-  await Promise.all(TEX.map(async t=>{const f=zip.file('assets/minecraft/textures/'+t[0]+'.png');if(f)out[t[0]]=await f.async('uint8array');}));
-  return out;
+  const tex={};
+  await Promise.all(TEX.map(async t=>{const f=zip.file('assets/minecraft/textures/'+t[0]+'.png');if(f)tex[t[0]]=await f.async('uint8array');}));
+  const game=!!(zip.file('version.json')||Object.keys(zip.files).some(n=>n.startsWith('net/minecraft/')));
+  let desc='',icon='';
+  const meta=zip.file('pack.mcmeta');
+  if(meta){try{const d=JSON.parse((await meta.async('string')).replace(/^﻿/,'')).pack.description;
+    desc=(typeof d==='string'?d:Array.isArray(d)?d.map(x=>typeof x==='string'?x:x.text||'').join(''):d&&d.text||'').replace(/§./g,'').trim();}catch(_){}}
+  const png=zip.file('pack.png');
+  if(png){const b=await png.async('base64');icon='data:image/png;base64,'+b;}
+  return{tex,game,desc,icon};
 }
-async function applyPack(tex,name){
-  const next=new Map();
-  await Promise.all(Object.entries(tex).map(async([k,buf])=>{
+async function decodeLayer(L){
+  if(L.canvases)return;
+  L.canvases=new Map();
+  await Promise.all(Object.entries(L.tex).map(async([k,buf])=>{
     try{
       const bmp=await createImageBitmap(new Blob([buf],{type:'image/png'}));
       const w=bmp.width,h=bmp.height>w&&bmp.height%w===0?w:bmp.height;
-      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bmp,0,0);next.set(k,c);
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bmp,0,0);L.canvases.set(k,c);
     }catch(_){}
   }));
-  REAL.clear();for(const[k,v]of next)REAL.set(k,v);packName=name;
-  resetVisuals();
-  return next.size;
 }
+async function applyLayers(){
+  for(const L of layers)await decodeLayer(L);
+  REAL.clear();
+  for(const L of layers)for(const[k,c]of L.canvases)REAL.set(k,c);
+  packName=layers.map(l=>l.name).join(' + ');
+  resetVisuals();renderPackList();
+}
+async function saveLayers(){
+  try{await idb('readwrite',s=>{s.delete('pack');return s.put(layers.map(({id,name,kind,desc,icon,tex})=>({id,name,kind,desc,icon,tex})),'packs');});}catch(_){}
+}
+function renderPackList(){
+  const ul=$('#packList');ul.innerHTML='';ul.hidden=!layers.length;
+  const hasGame=layers.some(l=>l.kind==='game');
+  $('#packBtnText').textContent=layers.length?'Hinzufügen':'Spieldatei laden';
+  // oben = höchster Vorrang
+  [...layers].reverse().forEach((L,ri)=>{
+    const i=layers.length-1-ri;
+    const li=document.createElement('li');
+    const im=L.icon?Object.assign(document.createElement('img'),{src:L.icon,alt:''}):Object.assign(document.createElement('span'),{className:'pk-ph'});
+    if(!L.icon&&L.kind==='game'){im.style.backgroundImage=`url(${icon(DEF.grass_block)})`;im.style.backgroundSize='cover';}
+    const t=document.createElement('div');t.className='pk-t';
+    const b=document.createElement('b');b.textContent=L.name;
+    const s=document.createElement('span');s.textContent=(L.kind==='game'?'Spieldatei (Grundlage)':'Texturpaket')+` · ${Object.keys(L.tex).length} Texturen`+(L.desc?` · ${L.desc}`:'');
+    s.title=s.textContent;t.append(b,s);
+    const bt=document.createElement('div');bt.className='pk-b';
+    const mk=(txt,label,fn,dis,cls)=>{const x=document.createElement('button');x.textContent=txt;x.title=label;x.setAttribute('aria-label',label);x.disabled=!!dis;if(cls)x.className=cls;x.addEventListener('click',fn);bt.appendChild(x);};
+    if(L.kind==='pack'){
+      mk('▲','Vorrang erhöhen',()=>moveLayer(i,1),i===layers.length-1);
+      mk('▼','Vorrang senken',()=>moveLayer(i,-1),i===0||layers[i-1].kind==='game');
+    }
+    mk('×','Entfernen',()=>removeLayer(i),false,'x');
+    li.append(im,t,bt);ul.appendChild(li);
+  });
+  if(!layers.length)packState('Ersatztexturen aktiv','Für spielgetreue Texturen deine Minecraft-Datei laden.',false);
+  else packState(hasGame?'Original-Texturen aktiv':'Texturpaket aktiv',
+    hasGame?(layers.length>1?'Oben stehende Pakete haben Vorrang, der Rest kommt aus der Spieldatei.':'Weitere Texturpakete kannst du darüber legen.')
+           :'Tipp: Lade zusätzlich die Spieldatei, dann sehen fehlende Blöcke original aus.',true);
+}
+async function moveLayer(i,dir){const j=i+dir;if(j<0||j>=layers.length)return;[layers[i],layers[j]]=[layers[j],layers[i]];await applyLayers();saveLayers();}
+async function removeLayer(i){layers.splice(i,1);await applyLayers();saveLayers();}
+async function addLayer(file){
+  const r=await readPack(file);
+  if(!Object.keys(r.tex).length)throw new Error(`In „${file.name}“ sind keine Blocktexturen für Minecraft ab 1.13. Wähle die 26.3.jar oder ein passendes Texturpaket.`);
+  const L={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:file.name.replace(/\.(zip|jar)$/i,''),kind:r.game?'game':'pack',desc:r.desc,icon:r.icon,tex:r.tex};
+  if(L.kind==='game'){layers=layers.filter(l=>l.kind!=='game');layers.unshift(L);}else layers.push(L);
+}
+// Kompatibilität für Tests: eine Datei als einzige Quelle laden
+async function applyPack(tex,name){layers=[{id:'t',name,kind:'game',desc:'',icon:'',tex}];await applyLayers();return REAL.size;}
 function resetVisuals(){
   for(const m of matCache.values()){if(m.map)m.map.dispose();m.dispose();}
   for(const g of geoCache.values())g.geo.dispose();
   matCache.clear();geoCache.clear();iconCache.clear();tintCache.clear();ghostMats.clear();previewKey="";preview.clear();
   rebuild();renderPalette();renderHotbar();renderMats();
   $('#selImg').src=icon(DEF[current]);$('#logo').src=icon(DEF.grass_block);
-  if(REAL.size)packState('Original-Texturen aktiv',`${packName} · ${REAL.size} Texturen`,true);
-  else packState('Ersatztexturen aktiv','Für spielgetreue Texturen deine Minecraft-Datei laden.',false);
 }
 $('#packIn').addEventListener('change',async e=>{
-  const file=e.target.files[0];e.target.value='';if(!file)return;
-  packState('Datei wird gelesen …',file.name,false);
-  try{
-    const tex=await readPack(file);
-    if(!Object.keys(tex).length){packState('Keine Texturen gefunden','Wähle die Datei 26.3.jar aus dem Ordner versions oder ein Ressourcenpaket.',false);return;}
-    const n=await applyPack(tex,file.name);
-    try{await idb('readwrite',s=>s.put({name:file.name,tex},'pack'));}catch(_){}
-    if(!n)packState('Texturen nicht lesbar','Die Bilder in der Datei konnten nicht geöffnet werden.',false);
-  }catch(err){packState('Datei nicht lesbar',err&&err.message?err.message:'Wähle eine .jar- oder .zip-Datei.',false);}
+  const files=[...e.target.files];e.target.value='';if(!files.length)return;
+  packState('Wird gelesen …',files.map(f=>f.name).join(', '),!!layers.length);
+  const errs=[];
+  for(const f of files){try{await addLayer(f);}catch(err){errs.push(err&&err.message?err.message:`„${f.name}“ ist keine lesbare .jar- oder .zip-Datei.`);}}
+  await applyLayers();saveLayers();
+  if(errs.length)packState('Nicht alles geladen',errs.join(' '),!!layers.length);
 });
-$('#packOff').addEventListener('click',async()=>{REAL.clear();packName='';resetVisuals();try{await idb('readwrite',s=>s.delete('pack'));}catch(_){}});
-(async()=>{try{const p=await idb('readonly',s=>s.get('pack'));if(p&&p.tex)await applyPack(p.tex,p.name);}catch(_){}})();
+// Gespeicherte Texturquellen laden (ältere Einzeldatei wird übernommen)
+(async()=>{try{
+  let ls=await idb('readonly',s=>s.get('packs'));
+  if(!ls){const p=await idb('readonly',s=>s.get('pack'));if(p&&p.tex)ls=[{id:'alt',name:(p.name||'Spieldatei').replace(/\.(zip|jar)$/i,''),kind:/\.jar$/i.test(p.name||'')?'game':'pack',desc:'',icon:'',tex:p.tex}];}
+  if(ls&&ls.length){layers=ls;await applyLayers();if(!await idb('readonly',s=>s.get('packs')))saveLayers();}
+}catch(_){}})();
 if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){window.__bpApplyPack=async(buf,name)=>applyPack(await readPack(new Blob([buf])),name);window.__bpIcon=(id,px)=>isoIcon(DEF[id],px);window.__bpCam=(p,t)=>{tween=null;camera.position.set(...p);controls.target.set(...t);};
   window.__bpSheet=(start,n)=>{let o=document.getElementById('sheet');if(!o){o=document.createElement('div');o.id='sheet';o.style.cssText='position:fixed;inset:0;z-index:99;background:#9aa;display:grid;grid-template-columns:repeat(24,1fr);gap:1px;overflow:hidden;font:9px monospace';document.body.appendChild(o);}
     o.innerHTML='';const list=DATA.blocks.slice(start,start+n);list.forEach((b,i)=>{const c=document.createElement('div');c.style.cssText='background:#bcc;text-align:center';c.innerHTML=`<img src="${icon(DEF[b[0]])}" style="width:52px;height:52px;display:block;margin:auto"><span>${start+i}</span>`;o.appendChild(c);});return list.map((b,i)=>(start+i)+':'+b[0]).join(' ');};
