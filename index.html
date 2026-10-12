@@ -96,6 +96,25 @@ img.ico{image-rendering:auto}
 .chk{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
 .chk input{accent-color:var(--accent)}
 .loading[hidden]{display:none}
+.walk-btn{font-weight:700!important;color:var(--accent)}
+.walkui{position:absolute;inset:0;pointer-events:none;z-index:4}
+.walkui[hidden]{display:none}
+.cross{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);mix-blend-mode:difference}
+.cross::before,.cross::after{content:"";position:absolute;background:#fff}
+.cross::before{left:8px;top:0;width:2px;height:18px}
+.cross::after{top:8px;left:0;height:2px;width:18px}
+.walk-info{position:absolute;left:10px;top:10px;font:600 12px var(--f-mono);color:#fff;text-shadow:0 1px 2px #000;background:rgba(0,0,0,.25);padding:4px 8px;border-radius:6px}
+.walk-bar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:2px;padding:3px;background:rgba(0,0,0,.45);border:2px solid rgba(0,0,0,.6);border-radius:4px}
+.walk-bar .ws{width:40px;height:40px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.25);background:rgba(120,120,120,.35);position:relative}
+.walk-bar .ws img{width:30px;height:30px}
+.walk-bar .ws.on{border-color:#fff;box-shadow:0 0 0 2px #fff}
+.walk-bar .ws i{position:absolute;left:3px;top:1px;font:600 10px var(--f-mono);font-style:normal;color:#fff;text-shadow:0 1px 1px #000}
+.walk-pause{position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,12,14,.5);pointer-events:auto;cursor:pointer}
+.walk-pause[hidden]{display:none}
+.wp-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:min(420px,calc(100% - 32px));cursor:default}
+.wp-box strong{font-family:var(--f-display);font-size:18px;font-weight:500}
+.wp-box > span{color:var(--muted);font-size:13px}
+.stage.walking .float{display:none}
 .loading{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-size:18px;color:var(--muted);pointer-events:none}
 
 .side{min-width:0;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
@@ -316,8 +335,30 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       <hr>
       <button class="tool" id="rotBtn" title="Ausrichtung drehen (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg><kbd>R</kbd></button>
     </div>
+    <div class="walkui" id="walkUI" hidden>
+      <div class="cross" aria-hidden="true"></div>
+      <div class="walk-info" id="walkInfo">Laufen · <span id="walkMode">Gehen</span> · <span id="walkPos"></span></div>
+      <div class="walk-bar" id="walkBar" aria-label="Schnellleiste"></div>
+      <div class="walk-pause" id="walkPause">
+        <div class="wp-box">
+          <strong>Laufmodus</strong>
+          <span>Klicke ins Bild, um dich umzusehen.</span>
+          <dl class="keys">
+            <dt>Maus</dt><dd>Umsehen</dd>
+            <dt><kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd></dt><dd>Laufen</dd>
+            <dt><kbd class="k">Leertaste</kbd></dt><dd>Springen · doppelt tippen: Fliegen</dd>
+            <dt><kbd class="k">Strg</kbd> / <kbd class="k">Shift</kbd></dt><dd>Sprinten / Schleichen (Fliegen: runter)</dd>
+            <dt>Links / Rechts</dt><dd>Abbauen / Setzen oder Benutzen</dd>
+            <dt>Mitte</dt><dd>Block aufnehmen</dd>
+            <dt><kbd class="k">1</kbd>–<kbd class="k">9</kbd>, Mausrad</dt><dd>Block aus der Schnellleiste</dd>
+            <dt><kbd class="k">Esc</kbd> / <kbd class="k">F</kbd></dt><dd>Maus freigeben / Laufmodus beenden</dd>
+          </dl>
+          <div class="row" style="margin:0;justify-content:center"><button class="btn primary" id="walkGo">Weiterlaufen</button><button class="btn" id="walkEnd">Laufmodus beenden</button></div>
+        </div>
+      </div>
+    </div>
     <div class="float views" aria-label="Ansicht">
-      <button data-view="iso">3D</button><button data-view="front">Vorne</button><button data-view="side">Seite</button><button data-view="top">Oben</button>
+      <button data-view="iso">3D</button><button data-view="front">Vorne</button><button data-view="side">Seite</button><button data-view="top">Oben</button><button id="walkBtn" class="walk-btn" title="Als Spieler durch den Bau laufen (F)">Laufen</button>
     </div>
     <div class="float refview" id="refView" hidden>
       <div class="rv-head" id="rvHead">
@@ -457,6 +498,8 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
         <dt><kbd class="k">Strg</kbd>+<kbd class="k">Z</kbd> / <kbd class="k">Y</kbd></dt><dd>Rückgängig / Wiederholen</dd>
         <dt><kbd class="k">Esc</kbd></dt><dd>Quader abbrechen</dd>
       </dl>
+      <h3>Laufmodus</h3>
+      <p class="small">Mit „Laufen“ oben rechts (oder <kbd class="k">F</kbd>) stehst du als Spieler in Augenhöhe auf der Baufläche und läufst durch deinen Bau wie im Spiel: Maus zum Umsehen, <kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd> laufen, Leertaste springen (doppelt tippen: fliegen), <kbd class="k">Strg</kbd> sprinten, <kbd class="k">Shift</kbd> schleichen. Wie im Spiel baut die linke Maustaste ab, die rechte setzt oder öffnet Türen, die mittlere nimmt einen Block auf. <kbd class="k">1</kbd>–<kbd class="k">9</kbd> und das Mausrad wählen aus der Schnellleiste. <kbd class="k">Esc</kbd> gibt die Maus frei, <kbd class="k">F</kbd> beendet den Laufmodus.</p>
       <h3>Benutzen</h3>
       <p class="small">Mit dem Hand-Werkzeug oder Strg+Klick öffnest und schließt du Türen, Falltüren, Zauntore und Fässer, legst Hebel um und schaltest Lampen, Kupferbirnen, Öfen, Lagerfeuer und Kerzen an. Bei Kerzen, Meeresgurken, Schildkröteneiern, Schnee, Blütenteppichen und Feldfrüchten änderst du die Anzahl oder das Wachstum. Klickst du eine Stufe auf eine gleiche Stufe, wird sie doppelt. Mit Shift änderst du die zweite Einstellung, etwa das Türscharnier oder die Kerzenanzahl.</p>
       <p class="small">Fackeln, Schilder, Korallenfächer, Köpfe, Knöpfe, Hebel und Glocken hängen an der Wand, wenn du auf eine Seitenfläche klickst. Laternen, Knöpfe, Hebel und Glocken hängen an der Decke, wenn du auf eine Unterseite klickst. Treppen bilden Innen- und Außenecken selbst.</p>
@@ -1301,15 +1344,18 @@ const cv=renderer.domElement;let down=null,pointers=0;
 const DRAG=7;
 function camLock(on){controls.enableRotate=!on;controls.enablePan=!on;}
 cv.addEventListener('pointerdown',e=>{
+  if(window.WALK&&WALK.on)return;
   pointers++;
   if(pointers===1){down={x:e.clientX,y:e.clientY,b:e.button};if(e.button!==1)camLock(true);}
   else{down=null;camLock(false);}
 });
 cv.addEventListener('pointermove',e=>{
+  if(window.WALK&&WALK.on)return;
   if(down&&!down.moved&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>DRAG){down.moved=true;camLock(false);}
   if(e.pointerType==='mouse'?!(down&&down.moved):!down)hover(e);
 });
 cv.addEventListener('pointerup',e=>{
+  if(window.WALK&&WALK.on)return;
   pointers=Math.max(0,pointers-1);const d=down;down=null;camLock(false);
   if(!d||d.moved)return;
   act(e,d.b===2?2:d.b===1?1:0);
@@ -1631,7 +1677,7 @@ $('#packIn').addEventListener('change',async e=>{
   if(!ls){const p=await idb('readonly',s=>s.get('pack'));if(p&&p.tex)ls=[{id:'alt',name:(p.name||'Spieldatei').replace(/\.(zip|jar)$/i,''),kind:/\.jar$/i.test(p.name||'')?'game':'pack',desc:'',icon:'',tex:p.tex}];}
   if(ls&&ls.length){layers=ls;await applyLayers();if(!await idb('readonly',s=>s.get('packs')))saveLayers();}
 }catch(_){}})();
-if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){window.__bpApplyPack=async(buf,name)=>applyPack(await readPack(new Blob([buf])),name);window.__bpIcon=(id,px)=>isoIcon(DEF[id],px);window.__bpCam=(p,t)=>{tween=null;camera.position.set(...p);controls.target.set(...t);};window.__bpMoveTest=(dt)=>{const h=[...held];moveCamera(dt);controls.update();return h;};window.__bpCamGet=()=>[camera.position.toArray().map(v=>+v.toFixed(2)),controls.target.toArray().map(v=>+v.toFixed(2))];
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){window.__bpApplyPack=async(buf,name)=>applyPack(await readPack(new Blob([buf])),name);window.__bpIcon=(id,px)=>isoIcon(DEF[id],px);window.__bpCam=(p,t)=>{tween=null;camera.position.set(...p);controls.target.set(...t);};window.__bpMoveTest=(dt)=>{const h=[...held];moveCamera(dt);controls.update();return h;};window.__bpWalkTest={enter:()=>enterWalk(),exit:()=>exitWalk(),step:(dt,keys,n=1)=>{for(let i=0;i<n;i++){wKeys.clear();keys.forEach(k=>wKeys.add(k));walkStep(dt);}wKeys.clear();return[WALK.pos.toArray().map(v=>+v.toFixed(2)),WALK.ground,WALK.fly];},look:(y,p)=>{WALK.yaw=y;WALK.pitch=p;},act:b=>walkAct(b),W:()=>WALK};window.__bpCamGet=()=>[camera.position.toArray().map(v=>+v.toFixed(2)),controls.target.toArray().map(v=>+v.toFixed(2))];
   window.__bpSheet=(start,n)=>{let o=document.getElementById('sheet');if(!o){o=document.createElement('div');o.id='sheet';o.style.cssText='position:fixed;inset:0;z-index:99;background:#9aa;display:grid;grid-template-columns:repeat(24,1fr);gap:1px;overflow:hidden;font:9px monospace';document.body.appendChild(o);}
     o.innerHTML='';const list=DATA.blocks.slice(start,start+n);list.forEach((b,i)=>{const c=document.createElement('div');c.style.cssText='background:#bcc;text-align:center';c.innerHTML=`<img src="${icon(DEF[b[0]])}" style="width:52px;height:52px;display:block;margin:auto"><span>${start+i}</span>`;o.appendChild(c);});return list.map((b,i)=>(start+i)+':'+b[0]).join(' ');};
   window.__bpSheetOff=()=>{const o=document.getElementById('sheet');if(o)o.remove();};}
@@ -2121,7 +2167,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)held.clear(
 const mvec=new THREE.Vector3(),fw=new THREE.Vector3(),rt=new THREE.Vector3();
 let lastFrame=performance.now();
 function moveCamera(dt){
-  if(!held.size)return;
+  if(!held.size||WALK.on)return;
   let x=0,y=0,z=0;for(const k of held){const v=MOVE[k];x+=v[0];y+=v[1];z+=v[2];}
   if(!x&&!y&&!z)return;
   tween=null;
@@ -2134,8 +2180,207 @@ function moveCamera(dt){
   if(camera.position.y+mvec.y<.3)mvec.y=.3-camera.position.y;
   camera.position.add(mvec);controls.target.add(mvec);
 }
+/* ---------- Laufmodus: als Spieler durch den Bau laufen ---------- */
+// Maße und Werte wie in Minecraft (Augenhöhe 1,62, Breite 0,6, Höhe 1,8, Schritthöhe 0,6)
+const WALK={on:false,pos:new THREE.Vector3(),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:false,fly:false,lastJump:0,saved:null,slot:0,locked:false,drag:null,sneak:false,sprint:false};
+window.WALK=WALK;
+const EYE=1.62,PW=.3,PH=1.8,STEP=.6,REACH=5;
+// Ohne Kollision: Pflanzen, Fackeln, Schienen, Schilder, Knöpfe … (man läuft hindurch)
+const NOCOLL=/flower|sapling|tulip|orchid|poppy|dandelion|allium|bluet|cornflower|lily_of|rose$|rose_bush|peony|lilac|sunflower|fern|short_grass|tall_grass|dry_grass|dead_bush|^bush$|torch|rail|button|lever|_sign$|banner|vine|lichen|pressure_plate|tripwire|kelp|seagrass|coral$|coral_fan|sugar_cane|wheat|carrots|potatoes|beetroots|nether_wart|sprouts|_roots$|mushroom$|fungus$|cobweb|petals|leaf_litter|wildflowers|eyeblossom|pitcher_plant|torchflower|hanging_roots|spore_blossom|cave_vines|weeping|twisting|sculk_vein|resin_clump|shrub|shelf_mushroom|firefly|propagule|azalea$|_fan$/;
+const collCache=new Map();
+// Kollisionsbox eines Blocks (0..1 je Achse), aus dem Modell inkl. Drehung; null = durchlässig
+function collBox(o,mask=0){
+  const key=o.id+'|'+o.r+'|'+o.f+'|'+o.k+'|'+o.s+'|'+o.a+'|'+mask;
+  if(collCache.has(key))return collCache.get(key);
+  const d=DEF[o.id];let box=null;
+  if(d&&!NOCOLL.test(o.id)){
+    if(d.shapes)box=o.f?[0,0,0,1,1,1]:[0,0,0,1,.5,1]; // Treppen: unten wie eine Stufe, damit man hochlaufen kann
+    else{
+      const parts=partsFor(d,o.k,o.s,o.a,0)||d.parts,mn=[1,1,1],mx=[0,0,0];
+      for(const[c,rx,ry,els]of parts){if(c>0&&!(mask&(1<<(c-1))))continue;
+        for(const e of els){
+          if(Math.min(e[3]-e[0],e[4]-e[1],e[5]-e[2])<.5)continue; // Flächen und Hauchdünnes ignorieren
+          for(const cx of[e[0],e[3]])for(const cy of[e[1],e[4]])for(const cz of[e[2],e[5]]){
+            let p=[cx/16-.5,cy/16-.5,cz/16-.5];p=rotAxis(rotAxis(p,0,-rx),1,-ry);
+            if(o.f)p=[-p[0],-p[1],p[2]];p=rotAxis(p,1,o.r*90);
+            for(let i=0;i<3;i++){mn[i]=Math.min(mn[i],p[i]+.5);mx[i]=Math.max(mx[i],p[i]+.5);}
+          }}}
+      if(mx[0]>mn[0]&&mx[1]>mn[1]&&mx[2]>mn[2]){
+        box=[...mn.map(v=>Math.max(0,v)),...mx.map(v=>Math.min(1,v))];
+        if(/fence$|_wall$/.test(o.id))box[4]=1.5; // Zäune und Mauern sind wie im Spiel 1,5 hoch
+      }
+    }
+  }
+  collCache.set(key,box);return box;
+}
+function solidBoxes(x0,y0,z0,x1,y1,z1){
+  const out=[];
+  for(let x=Math.floor(x0);x<=Math.floor(x1);x++)for(let y=Math.floor(y0)-1;y<=Math.floor(y1);y++)for(let z=Math.floor(z0);z<=Math.floor(z1);z++){
+    if(y<0)continue;const v=world.get(K(x,y,z));if(!v||!visible(y))continue;
+    const o=val(v),d=DEF[o.id],b=collBox(o,d&&d.flags&8?connMask(x,y,z):0);if(b)out.push([x+b[0],y+b[1],z+b[2],x+b[3],y+b[4],z+b[5]]);
+  }
+  return out;
+}
+// Bewegung entlang einer Achse, an Blöcken gestoppt
+function moveAxis(ax,d){
+  if(!d)return 0;
+  const p=WALK.pos,pmin=[p.x-PW,p.y,p.z-PW],pmax=[p.x+PW,p.y+PH,p.z+PW];
+  const qmin=[...pmin],qmax=[...pmax];qmin[ax]+=Math.min(0,d);qmax[ax]+=Math.max(0,d);
+  let dd=d;
+  for(const b of solidBoxes(...qmin,...qmax)){
+    let hit=true;for(let i=0;i<3;i++){if(i!==ax&&(pmax[i]<=b[i]+1e-6||pmin[i]>=b[i+3]-1e-6)){hit=false;break;}}
+    if(!hit)continue;
+    if(dd>0&&pmax[ax]<=b[ax]+1e-6)dd=Math.min(dd,b[ax]-pmax[ax]);
+    else if(dd<0&&pmin[ax]>=b[ax+3]-1e-6)dd=Math.max(dd,b[ax+3]-pmin[ax]);
+  }
+  if(ax===1&&p.y+dd<0)dd=-p.y; // Boden der Baufläche
+  if(ax!==1){const lim=HALF-PW,c=p.getComponent(ax);dd=Math.max(-lim-c,Math.min(lim-c,dd));}
+  p.setComponent(ax,p.getComponent(ax)+dd);return dd;
+}
+function moveHorizontal(ax,d){
+  const moved=moveAxis(ax,d);
+  if(Math.abs(moved-d)<1e-6||!WALK.ground||WALK.fly)return;
+  // Stufe hochsteigen (bis 0,6 Blöcke), wie im Spiel
+  const save=WALK.pos.clone();
+  const up=moveAxis(1,STEP);const m2=moveAxis(ax,d-moved);moveAxis(1,-up);
+  if(Math.abs(m2)<1e-6)WALK.pos.copy(save);
+}
+const wKeys=new Set();
+function walkStep(dt){
+  const f=new THREE.Vector3(-Math.sin(WALK.yaw),0,-Math.cos(WALK.yaw)),r=new THREE.Vector3(Math.cos(WALK.yaw),0,-Math.sin(WALK.yaw));
+  let ix=0,iz=0;
+  if(wKeys.has('KeyW')||wKeys.has('ArrowUp'))iz++;if(wKeys.has('KeyS')||wKeys.has('ArrowDown'))iz--;
+  if(wKeys.has('KeyD')||wKeys.has('ArrowRight'))ix++;if(wKeys.has('KeyA')||wKeys.has('ArrowLeft'))ix--;
+  WALK.sneak=wKeys.has('ShiftLeft')||wKeys.has('ShiftRight');
+  WALK.sprint=(wKeys.has('ControlLeft')||wKeys.has('ControlRight'))&&iz>0;
+  const speed=WALK.fly?(WALK.sprint?21.6:10.9):WALK.sneak?1.3:WALK.sprint?5.6:4.3;
+  const dir=new THREE.Vector3().addScaledVector(f,iz).addScaledVector(r,ix);if(dir.lengthSq())dir.normalize().multiplyScalar(speed);
+  const k=1-Math.exp(-dt*(WALK.ground||WALK.fly?14:3));
+  WALK.vel.x+=(dir.x-WALK.vel.x)*k;WALK.vel.z+=(dir.z-WALK.vel.z)*k;
+  if(WALK.fly){const v=(wKeys.has('Space')?1:0)-(WALK.sneak?1:0);WALK.vel.y+=(v*7.5-WALK.vel.y)*Math.min(1,dt*14);}
+  else{
+    WALK.vel.y=Math.max(-78,WALK.vel.y-32*dt);
+    if(wKeys.has('Space')&&WALK.ground){WALK.vel.y=9;WALK.ground=false;}
+  }
+  const dy=WALK.vel.y*dt,my=moveAxis(1,dy);
+  if(dy<0&&my>dy+1e-6){WALK.ground=true;WALK.vel.y=0;if(WALK.fly&&!wKeys.has('Space'))WALK.fly=false;}
+  else{WALK.ground=false;if(dy>0&&my<dy-1e-6)WALK.vel.y=0;}
+  moveHorizontal(0,WALK.vel.x*dt);moveHorizontal(2,WALK.vel.z*dt);
+  const eye=WALK.sneak&&!WALK.fly?EYE-.3:EYE;
+  camera.position.set(WALK.pos.x,WALK.pos.y+eye,WALK.pos.z);
+  camera.rotation.set(WALK.pitch,WALK.yaw,0,'YXZ');
+  $('#walkMode').textContent=WALK.fly?'Fliegen':WALK.sneak?'Schleichen':WALK.sprint?'Sprinten':'Gehen';
+  $('#walkPos').textContent=`X ${Math.floor(WALK.pos.x)} Y ${Math.floor(WALK.pos.y)} Z ${Math.floor(WALK.pos.z)}`;
+  walkAim();
+}
+// Ziel in der Bildmitte, Reichweite wie im Spiel
+const centerNdc=new THREE.Vector2(0,0);
+function pickCenter(){
+  camera.updateMatrixWorld();ray.setFromCamera(centerNdc,camera);
+  let best=voxelCast(ray.ray.origin,ray.ray.direction,REACH);
+  plane.constant=0;
+  if(ray.ray.intersectPlane(plane,hitV)){const d=hitV.distanceTo(ray.ray.origin);
+    if(d<=REACH&&(!best||d<best.dist)){const c=[Math.floor(hitV.x),0,Math.floor(hitV.z)];if(inBounds(c))best={dist:d,block:null,place:c,n:[0,1,0],upper:false};}}
+  return best;
+}
+function walkAim(){const p=pickCenter();showAim(p&&p.block);preview.visible=false;ghost.visible=false;}
+function overlapsPlayer(c){
+  const p=WALK.pos;return c[0]+1>p.x-PW&&c[0]<p.x+PW&&c[2]+1>p.z-PW&&c[2]<p.z+PW&&c[1]+1>p.y&&c[1]<p.y+PH;
+}
+function walkAct(btn){
+  const p=pickCenter();if(!p)return;
+  if(btn===0){if(p.block)apply(groupKeys(K(...p.block)).map(k=>[k,null]));return;}
+  if(btn===1){if(p.block)select(val(world.get(K(...p.block))).id);renderWalkBar();return;}
+  // Rechtsklick: benutzbare Blöcke benutzen (außer beim Schleichen), sonst setzen
+  if(p.block&&!WALK.sneak){const o=val(world.get(K(...p.block))),d=DEF[o.id],L=d&&stateList(d,o.a);if(L&&L.length>1&&d.props.length&&!d.props.includes('type')){useBlock(p.block,false);return;}}
+  const pl=placement(p);if(!pl)return;
+  if(pl.some(([,v,c])=>{const b=collBox(val(v));return b&&overlapsPlayer(c);}))return;
+  apply(pl.map(([k,v])=>[k,v]));
+}
+function renderWalkBar(){
+  const bar=$('#walkBar');bar.innerHTML='';
+  for(let i=0;i<9;i++){const id=recent[i],s=document.createElement('div');s.className='ws'+(id===current?' on':'');
+    if(id)s.innerHTML=`<img class="ico" src="${icon(DEF[id])}" alt=""><i>${i+1}</i>`;else s.innerHTML=`<i>${i+1}</i>`;
+    if(id)s.title=DEF[id].name;bar.appendChild(s);}
+}
+function walkSelect(i){const id=recent[(i+9)%9];if(!id)return;current=id;$('#selImg').src=icon(DEF[id]);$('#selName').textContent=DEF[id].name;renderWalkBar();renderHotbar();}
+function surfaceAt(x,z){for(let y=MAXY-1;y>=0;y--){const v=world.get(K(x,y,z));if(v&&visible(y)){const b=collBox(val(v));if(b)return y+b[4];}}return 0;}
+function enterWalk(){
+  if(WALK.on)return;
+  if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches){flashMsg('Der Laufmodus braucht Maus und Tastatur.');return;}
+  WALK.saved={p:camera.position.clone(),t:controls.target.clone(),fov:camera.fov};
+  tween=null;held.clear();
+  // Startpunkt: vor dem Bau am Boden, Blick zum Bau
+  const b=bounds(),t=controls.target.clone(),c=camera.position.clone();
+  const dir=new THREE.Vector3(c.x-t.x,0,c.z-t.z);if(dir.lengthSq()<1e-6)dir.set(0,0,1);dir.normalize();
+  const rad=b?Math.max(b.mx[0]-b.mn[0],b.mx[2]-b.mn[2])/2+4:6;
+  const sx=Math.max(-HALF+1,Math.min(HALF-1,t.x+dir.x*rad)),sz=Math.max(-HALF+1,Math.min(HALF-1,t.z+dir.z*rad));
+  WALK.pos.set(sx,surfaceAt(Math.floor(sx),Math.floor(sz)),sz);WALK.vel.set(0,0,0);WALK.fly=false;WALK.ground=true;
+  WALK.yaw=Math.atan2(-(t.x-sx),-(t.z-sz));WALK.pitch=-.1;
+  camera.fov=70;camera.updateProjectionMatrix();
+  controls.enabled=false;WALK.on=true;
+  stage.classList.add('walking');$('#walkUI').hidden=false;$('#walkPause').hidden=false;clearHover();
+  renderWalkBar();
+}
+function exitWalk(){
+  if(!WALK.on)return;
+  WALK.on=false;wKeys.clear();
+  if(document.pointerLockElement)document.exitPointerLock();
+  stage.classList.remove('walking');$('#walkUI').hidden=true;aim.visible=false;
+  camera.fov=WALK.saved.fov;camera.updateProjectionMatrix();
+  camera.position.copy(WALK.saved.p);controls.target.copy(WALK.saved.t);camera.up.set(0,1,0);
+  controls.enabled=true;controls.update();
+}
+function lockPointer(){
+  $('#walkPause').hidden=true;
+  try{const r=cv.requestPointerLock&&cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{WALK.locked=false;});}catch(_){WALK.locked=false;}
+}
+$('#walkBtn').addEventListener('click',()=>{WALK.on?exitWalk():enterWalk();});
+$('#walkGo').addEventListener('click',e=>{e.stopPropagation();lockPointer();});
+$('#walkEnd').addEventListener('click',e=>{e.stopPropagation();exitWalk();});
+$('#walkPause').addEventListener('click',e=>{if(e.target===e.currentTarget)lockPointer();});
+document.addEventListener('pointerlockchange',()=>{
+  WALK.locked=document.pointerLockElement===cv;
+  if(WALK.on&&!WALK.locked){$('#walkPause').hidden=false;wKeys.clear();}
+});
+document.addEventListener('pointerlockerror',()=>{WALK.locked=false;if(WALK.on)flashMsg('Die Maus konnte nicht eingefangen werden. Ziehe mit gedrückter Maustaste, um dich umzusehen.');});
+// Umsehen: mit eingefangener Maus, sonst durch Ziehen
+addEventListener('mousemove',e=>{
+  if(!WALK.on)return;
+  let dx=0,dy=0;
+  if(WALK.locked){dx=e.movementX;dy=e.movementY;}
+  else if(WALK.drag&&$('#walkPause').hidden){dx=e.clientX-WALK.drag.x;dy=e.clientY-WALK.drag.y;WALK.drag={x:e.clientX,y:e.clientY,moved:WALK.drag.moved||Math.abs(dx)+Math.abs(dy)>2};}
+  else return;
+  WALK.yaw-=dx*.0025;WALK.pitch=Math.max(-1.55,Math.min(1.55,WALK.pitch-dy*.0025));
+});
+cv.addEventListener('mousedown',e=>{
+  if(!WALK.on)return;
+  e.preventDefault();
+  if(WALK.locked)walkAct(e.button);else WALK.drag={x:e.clientX,y:e.clientY,b:e.button,moved:false};
+});
+addEventListener('mouseup',e=>{if(WALK.on&&WALK.drag){const d=WALK.drag;WALK.drag=null;if(!d.moved&&$('#walkPause').hidden)walkAct(d.b);}});
+cv.addEventListener('wheel',e=>{if(!WALK.on)return;e.preventDefault();const i=recent.indexOf(current);walkSelect((i<0?0:i)+(e.deltaY>0?1:-1));},{passive:false});
+// Tasten im Laufmodus (vor den übrigen Tastenkürzeln)
+addEventListener('keydown',e=>{
+  if(typing())return;
+  if(!WALK.on){if(e.code==='KeyF'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!document.querySelector('.modal:not([hidden])')){e.preventDefault();enterWalk();}return;}
+  e.stopImmediatePropagation();
+  if(e.code==='KeyF'){e.preventDefault();exitWalk();return;}
+  if(/^Digit[1-9]$/.test(e.code)){walkSelect(+e.code.slice(5)-1);return;}
+  if(e.code==='Space'){e.preventDefault();if(!e.repeat){const now=performance.now();if(now-WALK.lastJump<300){WALK.fly=!WALK.fly;WALK.vel.y=0;}WALK.lastJump=now;}}
+  if(e.ctrlKey&&/^Key[ZY]$/.test(e.code)){e.preventDefault();e.code==='KeyZ'&&!e.shiftKey?undo():redo();return;}
+  if(/^(Key[WASD]|Arrow|Space|Shift|Control)/.test(e.code)){e.preventDefault();wKeys.add(e.code);}
+},true);
+addEventListener('keyup',e=>{wKeys.delete(e.code);if(/^Control/.test(e.code)||/^Shift/.test(e.code))wKeys.delete(e.code);});
+addEventListener('blur',()=>wKeys.clear());
+
 function loop(now){
   const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
+  if(WALK.on){
+    if(WALK.locked||WALK.drag||$('#walkPause').hidden)walkStep(dt);
+    const p=WALK.pos;sun.target.position.set(Math.round(p.x),0,Math.round(p.z));sun.position.set(sun.target.position.x+24,44,sun.target.position.z+16);
+    renderer.render(scene,camera);requestAnimationFrame(loop);return;
+  }
   moveCamera(dt);
   if(tween){const t=Math.min(1,(now-tween.start)/tween.dur),k=ease(t);camera.position.lerpVectors(tween.p0,tween.p1,k);controls.target.lerpVectors(tween.t0,tween.t1,k);if(t>=1){tween=null;updateRotLabel();}}
   controls.update();
