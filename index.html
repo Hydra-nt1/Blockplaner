@@ -448,6 +448,8 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       </dl>
       <h3>Tastatur</h3>
       <dl class="keys">
+        <dt><kbd class="k">W</kbd> <kbd class="k">A</kbd> <kbd class="k">S</kbd> <kbd class="k">D</kbd></dt><dd>Bewegen (auch Pfeiltasten), die Maus bleibt Zeiger</dd>
+        <dt><kbd class="k">Leertaste</kbd> / <kbd class="k">Q</kbd></dt><dd>Hoch / runter (auch <kbd class="k">E</kbd> für hoch)</dd>
         <dt><kbd class="k">1</kbd> – <kbd class="k">6</kbd></dt><dd>Werkzeug wählen (6 = Benutzen)</dd>
         <dt><kbd class="k">Strg</kbd> + Klick</dt><dd>Block benutzen: Tür öffnen, Hebel umlegen, Lampe an …</dd>
         <dt><kbd class="k">R</kbd></dt><dd>Ausrichtung des nächsten Blocks drehen</dd>
@@ -1101,8 +1103,8 @@ let qT=null;$('#q').addEventListener('input',e=>{clearTimeout(qT);qT=setTimeout(
 
 /* ---------- Werkzeuge ---------- */
 const HINTS={
-  view:'Ziehen: drehen · Rechts ziehen: verschieben · Rad: zoomen',
-  place:'Linksklick: setzen · Rechtsklick: abbauen · Mittelklick: aufnehmen · R: drehen',
+  view:'WASD: bewegen · Leertaste/Q: hoch/runter · Ziehen: drehen · Rad: zoomen',
+  place:'Linksklick: setzen · Rechtsklick: abbauen · Mittelklick: aufnehmen · R: drehen · WASD: bewegen',
   break:'Klick auf einen Block baut ihn ab',
   box:'Erste Ecke anklicken · mit Shift wird der Bereich geleert',
   boxB:'Zweite Ecke anklicken · Esc bricht ab',
@@ -1629,7 +1631,7 @@ $('#packIn').addEventListener('change',async e=>{
   if(!ls){const p=await idb('readonly',s=>s.get('pack'));if(p&&p.tex)ls=[{id:'alt',name:(p.name||'Spieldatei').replace(/\.(zip|jar)$/i,''),kind:/\.jar$/i.test(p.name||'')?'game':'pack',desc:'',icon:'',tex:p.tex}];}
   if(ls&&ls.length){layers=ls;await applyLayers();if(!await idb('readonly',s=>s.get('packs')))saveLayers();}
 }catch(_){}})();
-if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){window.__bpApplyPack=async(buf,name)=>applyPack(await readPack(new Blob([buf])),name);window.__bpIcon=(id,px)=>isoIcon(DEF[id],px);window.__bpCam=(p,t)=>{tween=null;camera.position.set(...p);controls.target.set(...t);};
+if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){window.__bpApplyPack=async(buf,name)=>applyPack(await readPack(new Blob([buf])),name);window.__bpIcon=(id,px)=>isoIcon(DEF[id],px);window.__bpCam=(p,t)=>{tween=null;camera.position.set(...p);controls.target.set(...t);};window.__bpMoveTest=(dt)=>{const h=[...held];moveCamera(dt);controls.update();return h;};window.__bpCamGet=()=>[camera.position.toArray().map(v=>+v.toFixed(2)),controls.target.toArray().map(v=>+v.toFixed(2))];
   window.__bpSheet=(start,n)=>{let o=document.getElementById('sheet');if(!o){o=document.createElement('div');o.id='sheet';o.style.cssText='position:fixed;inset:0;z-index:99;background:#9aa;display:grid;grid-template-columns:repeat(24,1fr);gap:1px;overflow:hidden;font:9px monospace';document.body.appendChild(o);}
     o.innerHTML='';const list=DATA.blocks.slice(start,start+n);list.forEach((b,i)=>{const c=document.createElement('div');c.style.cssText='background:#bcc;text-align:center';c.innerHTML=`<img src="${icon(DEF[b[0]])}" style="width:52px;height:52px;display:block;margin:auto"><span>${start+i}</span>`;o.appendChild(c);});return list.map((b,i)=>(start+i)+':'+b[0]).join(' ');};
   window.__bpSheetOff=()=>{const o=document.getElementById('sheet');if(o)o.remove();};}
@@ -2103,7 +2105,38 @@ $('#shCopy').addEventListener('click',e=>copy($('#shUrl').value,e.currentTarget,
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 new ResizeObserver(resize).observe(stage);resize();
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+/* ---------- Bewegen mit WASD wie im Kreativmodus (Maus bleibt Zeiger) ---------- */
+const MOVE={KeyW:[0,0,1],ArrowUp:[0,0,1],KeyS:[0,0,-1],ArrowDown:[0,0,-1],KeyA:[-1,0,0],ArrowLeft:[-1,0,0],KeyD:[1,0,0],ArrowRight:[1,0,0],Space:[0,1,0],KeyE:[0,1,0],KeyQ:[0,-1,0]};
+const held=new Set();
+const typing=()=>{const a=document.activeElement;return a&&(/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=='range'&&a.type!=='checkbox'&&a.type!=='radio'||a.isContentEditable);};
+addEventListener('keydown',e=>{
+  if(!MOVE[e.code]||e.ctrlKey||e.metaKey||e.altKey||typing()||document.querySelector('.modal:not([hidden])'))return;
+  // Pfeiltasten bleiben beim Ebenen-Regler für den Regler
+  if(e.code.startsWith('Arrow')&&document.activeElement&&document.activeElement.type==='range')return;
+  held.add(e.code);e.preventDefault();
+});
+addEventListener('keyup',e=>held.delete(e.code));
+addEventListener('blur',()=>held.clear());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)held.clear();});
+const mvec=new THREE.Vector3(),fw=new THREE.Vector3(),rt=new THREE.Vector3();
+let lastFrame=performance.now();
+function moveCamera(dt){
+  if(!held.size)return;
+  let x=0,y=0,z=0;for(const k of held){const v=MOVE[k];x+=v[0];y+=v[1];z+=v[2];}
+  if(!x&&!y&&!z)return;
+  tween=null;
+  camera.getWorldDirection(fw);fw.y=0;if(fw.lengthSq()<1e-6)fw.set(0,0,-1);fw.normalize();
+  rt.crossVectors(fw,camera.up).normalize();
+  // Tempo passt sich dem Zoom an: nah = fein, weit weg = schnell
+  const speed=Math.max(4,Math.min(30,camera.position.distanceTo(controls.target)*.6));
+  mvec.set(0,0,0).addScaledVector(fw,z).addScaledVector(rt,x);if(mvec.lengthSq())mvec.normalize();mvec.y=y;
+  mvec.multiplyScalar(speed*dt);
+  if(camera.position.y+mvec.y<.3)mvec.y=.3-camera.position.y;
+  camera.position.add(mvec);controls.target.add(mvec);
+}
 function loop(now){
+  const dt=Math.min(.05,(now-lastFrame)/1000);lastFrame=now;
+  moveCamera(dt);
   if(tween){const t=Math.min(1,(now-tween.start)/tween.dur),k=ease(t);camera.position.lerpVectors(tween.p0,tween.p1,k);controls.target.lerpVectors(tween.t0,tween.t1,k);if(t>=1){tween=null;updateRotLabel();}}
   controls.update();
   // Schattenbereich folgt dem Blickpunkt (gleiche Schattenschärfe auf der ganzen Baufläche)
