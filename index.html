@@ -115,6 +115,15 @@ img.ico{image-rendering:auto}
 .wp-box strong{font-family:var(--f-display);font-size:18px;font-weight:500}
 .wp-box > span{color:var(--muted);font-size:13px}
 .stage.walking .float{display:none}
+.stage.looking,.stage.looking canvas{cursor:none}
+.modesw{position:absolute;right:12px;top:12px;z-index:6;display:flex;padding:3px;gap:2px;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
+.modesw button{display:flex;align-items:center;gap:6px;border:0;background:transparent;border-radius:7px;padding:6px 11px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);white-space:nowrap}
+.modesw button svg{width:17px;height:17px}
+.modesw button:hover{color:var(--ink)}
+.modesw button[aria-checked="true"]{background:var(--accent);color:var(--accent-ink)}
+.stage.looking .modesw{opacity:.55}
+.stage:not(.walking) .views{top:60px}
+@media (max-width:860px){.modesw{top:auto;bottom:122px;right:50%;transform:translateX(50%)}.stage:not(.walking) .views{top:auto}}
 .loading{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-display);font-size:18px;color:var(--muted);pointer-events:none}
 
 .side{min-width:0;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
@@ -335,6 +344,10 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       <hr>
       <button class="tool" id="rotBtn" title="Ausrichtung drehen (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.5h-4.5"/></svg><kbd>R</kbd></button>
     </div>
+    <div class="modesw" role="radiogroup" aria-label="Modus">
+      <button role="radio" id="modeBuild" aria-checked="true" title="Bauen mit Mauszeiger, WASD zum Fliegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12 4 7.5"/></svg>Bauen &amp; Fliegen</button>
+      <button role="radio" id="modeWalk" aria-checked="false" title="Als Spieler durch den Bau laufen (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><circle cx="13" cy="4.5" r="2"/><path d="m9 21 2.5-6 3 2.5V21"/><path d="M7.5 11.5 10 8l3.5 1.5 2 3 2.5.5"/><path d="m11.5 15-1-4"/></svg>Laufen</button>
+    </div>
     <div class="walkui" id="walkUI" hidden>
       <div class="cross" aria-hidden="true"></div>
       <div class="walk-info" id="walkInfo">Laufen · <span id="walkMode">Gehen</span> · <span id="walkPos"></span></div>
@@ -342,7 +355,7 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       <div class="walk-pause" id="walkPause">
         <div class="wp-box">
           <strong>Laufmodus</strong>
-          <span>Klicke ins Bild, um dich umzusehen.</span>
+          <span>Klicke ins Bild oder auf „Weiterlaufen“. Der Mauszeiger verschwindet, du siehst dich durch Bewegen der Maus um und zielst mit dem Fadenkreuz.</span>
           <dl class="keys">
             <dt>Maus</dt><dd>Umsehen</dd>
             <dt><kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd></dt><dd>Laufen</dd>
@@ -351,14 +364,14 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
             <dt>Links / Rechts</dt><dd>Abbauen / Setzen oder Benutzen</dd>
             <dt>Mitte</dt><dd>Block aufnehmen</dd>
             <dt><kbd class="k">1</kbd>–<kbd class="k">9</kbd>, Mausrad</dt><dd>Block aus der Schnellleiste</dd>
-            <dt><kbd class="k">Esc</kbd> / <kbd class="k">F</kbd></dt><dd>Maus freigeben / Laufmodus beenden</dd>
+            <dt><kbd class="k">Esc</kbd> / <kbd class="k">F</kbd></dt><dd>Pause mit Mauszeiger / zurück zu „Bauen &amp; Fliegen“</dd>
           </dl>
           <div class="row" style="margin:0;justify-content:center"><button class="btn primary" id="walkGo">Weiterlaufen</button><button class="btn" id="walkEnd">Laufmodus beenden</button></div>
         </div>
       </div>
     </div>
     <div class="float views" aria-label="Ansicht">
-      <button data-view="iso">3D</button><button data-view="front">Vorne</button><button data-view="side">Seite</button><button data-view="top">Oben</button><button id="walkBtn" class="walk-btn" title="Als Spieler durch den Bau laufen (F)">Laufen</button>
+      <button data-view="iso">3D</button><button data-view="front">Vorne</button><button data-view="side">Seite</button><button data-view="top">Oben</button>
     </div>
     <div class="float refview" id="refView" hidden>
       <div class="rv-head" id="rvHead">
@@ -499,7 +512,7 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
         <dt><kbd class="k">Esc</kbd></dt><dd>Quader abbrechen</dd>
       </dl>
       <h3>Laufmodus</h3>
-      <p class="small">Mit „Laufen“ oben rechts (oder <kbd class="k">F</kbd>) stehst du als Spieler in Augenhöhe auf der Baufläche und läufst durch deinen Bau wie im Spiel: Maus zum Umsehen, <kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd> laufen, Leertaste springen (doppelt tippen: fliegen), <kbd class="k">Strg</kbd> sprinten, <kbd class="k">Shift</kbd> schleichen. Wie im Spiel baut die linke Maustaste ab, die rechte setzt oder öffnet Türen, die mittlere nimmt einen Block auf. <kbd class="k">1</kbd>–<kbd class="k">9</kbd> und das Mausrad wählen aus der Schnellleiste. <kbd class="k">Esc</kbd> gibt die Maus frei, <kbd class="k">F</kbd> beendet den Laufmodus.</p>
+      <p class="small">Mit dem Schalter oben in der Mitte (oder <kbd class="k">F</kbd>) wechselst du zwischen „Bauen &amp; Fliegen“ und „Laufen“. Im Laufmodus stehst du als Spieler in Augenhöhe auf der Baufläche und läufst durch deinen Bau wie im Spiel. Der Mauszeiger ist ausgeblendet, gezielt wird mit dem Fadenkreuz: Maus bewegen zum Umsehen, <kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd> laufen, Leertaste springen (doppelt tippen: fliegen), <kbd class="k">Strg</kbd> sprinten, <kbd class="k">Shift</kbd> schleichen. Wie im Spiel baut die linke Maustaste ab, die rechte setzt oder öffnet Türen, die mittlere nimmt einen Block auf. <kbd class="k">1</kbd>–<kbd class="k">9</kbd> und das Mausrad wählen aus der Schnellleiste. <kbd class="k">Esc</kbd> pausiert und zeigt den Mauszeiger, <kbd class="k">F</kbd> wechselt zurück zum Bauen.</p>
       <h3>Benutzen</h3>
       <p class="small">Mit dem Hand-Werkzeug oder Strg+Klick öffnest und schließt du Türen, Falltüren, Zauntore und Fässer, legst Hebel um und schaltest Lampen, Kupferbirnen, Öfen, Lagerfeuer und Kerzen an. Bei Kerzen, Meeresgurken, Schildkröteneiern, Schnee, Blütenteppichen und Feldfrüchten änderst du die Anzahl oder das Wachstum. Klickst du eine Stufe auf eine gleiche Stufe, wird sie doppelt. Mit Shift änderst du die zweite Einstellung, etwa das Türscharnier oder die Kerzenanzahl.</p>
       <p class="small">Fackeln, Schilder, Korallenfächer, Köpfe, Knöpfe, Hebel und Glocken hängen an der Wand, wenn du auf eine Seitenfläche klickst. Laternen, Knöpfe, Hebel und Glocken hängen an der Decke, wenn du auf eine Unterseite klickst. Treppen bilden Innen- und Außenecken selbst.</p>
@@ -2320,45 +2333,53 @@ function enterWalk(){
   camera.fov=70;camera.updateProjectionMatrix();
   controls.enabled=false;WALK.on=true;
   stage.classList.add('walking');$('#walkUI').hidden=false;$('#walkPause').hidden=false;clearHover();
-  renderWalkBar();
+  renderWalkBar();updateModeUI();
 }
 function exitWalk(){
   if(!WALK.on)return;
   WALK.on=false;wKeys.clear();
   if(document.pointerLockElement)document.exitPointerLock();
-  stage.classList.remove('walking');$('#walkUI').hidden=true;aim.visible=false;
+  stage.classList.remove('walking','looking');$('#walkUI').hidden=true;aim.visible=false;updateModeUI();
   camera.fov=WALK.saved.fov;camera.updateProjectionMatrix();
   camera.position.copy(WALK.saved.p);controls.target.copy(WALK.saved.t);camera.up.set(0,1,0);
   controls.enabled=true;controls.update();
 }
+// Spielen = Pause-Fenster zu. Der Mauszeiger ist dann ausgeblendet, gezielt wird mit dem Fadenkreuz.
+const playing=()=>WALK.on&&$('#walkPause').hidden;
+function setPlaying(on){
+  $('#walkPause').hidden=on;stage.classList.toggle('looking',on);
+  if(!on){wKeys.clear();if(document.pointerLockElement)document.exitPointerLock();}
+}
 function lockPointer(){
-  $('#walkPause').hidden=true;
+  setPlaying(true);
+  // Maus einfangen, wo der Browser es erlaubt; sonst reicht das ausgeblendete Bewegen über der Fläche
   try{const r=cv.requestPointerLock&&cv.requestPointerLock();if(r&&r.catch)r.catch(()=>{WALK.locked=false;});}catch(_){WALK.locked=false;}
 }
-$('#walkBtn').addEventListener('click',()=>{WALK.on?exitWalk():enterWalk();});
 $('#walkGo').addEventListener('click',e=>{e.stopPropagation();lockPointer();});
 $('#walkEnd').addEventListener('click',e=>{e.stopPropagation();exitWalk();});
 $('#walkPause').addEventListener('click',e=>{if(e.target===e.currentTarget)lockPointer();});
 document.addEventListener('pointerlockchange',()=>{
-  WALK.locked=document.pointerLockElement===cv;
-  if(WALK.on&&!WALK.locked){$('#walkPause').hidden=false;wKeys.clear();}
+  const was=WALK.locked;WALK.locked=document.pointerLockElement===cv;
+  // Esc löst die Maus: dann Pause zeigen (wie im Spiel)
+  if(WALK.on&&was&&!WALK.locked)setPlaying(false);
 });
-document.addEventListener('pointerlockerror',()=>{WALK.locked=false;if(WALK.on)flashMsg('Die Maus konnte nicht eingefangen werden. Ziehe mit gedrückter Maustaste, um dich umzusehen.');});
-// Umsehen: mit eingefangener Maus, sonst durch Ziehen
+document.addEventListener('pointerlockerror',()=>{WALK.locked=false;});
+// Umsehen durch Bewegen der Maus (ohne Klicken), mit und ohne eingefangene Maus
 addEventListener('mousemove',e=>{
-  if(!WALK.on)return;
-  let dx=0,dy=0;
-  if(WALK.locked){dx=e.movementX;dy=e.movementY;}
-  else if(WALK.drag&&$('#walkPause').hidden){dx=e.clientX-WALK.drag.x;dy=e.clientY-WALK.drag.y;WALK.drag={x:e.clientX,y:e.clientY,moved:WALK.drag.moved||Math.abs(dx)+Math.abs(dy)>2};}
-  else return;
+  if(!playing())return;
+  const dx=e.movementX||0,dy=e.movementY||0;
+  if(Math.abs(dx)>300||Math.abs(dy)>300)return; // Sprünge beim Einfangen ignorieren
   WALK.yaw-=dx*.0025;WALK.pitch=Math.max(-1.55,Math.min(1.55,WALK.pitch-dy*.0025));
 });
 cv.addEventListener('mousedown',e=>{
   if(!WALK.on)return;
   e.preventDefault();
-  if(WALK.locked)walkAct(e.button);else WALK.drag={x:e.clientX,y:e.clientY,b:e.button,moved:false};
+  if(playing())walkAct(e.button);
 });
-addEventListener('mouseup',e=>{if(WALK.on&&WALK.drag){const d=WALK.drag;WALK.drag=null;if(!d.moved&&$('#walkPause').hidden)walkAct(d.b);}});
+// Modus-Schalter: Bauen & Fliegen oder Laufen
+function updateModeUI(){$('#modeBuild').setAttribute('aria-checked',!WALK.on);$('#modeWalk').setAttribute('aria-checked',WALK.on);}
+$('#modeBuild').addEventListener('click',()=>{exitWalk();updateModeUI();});
+$('#modeWalk').addEventListener('click',()=>{enterWalk();updateModeUI();});
 cv.addEventListener('wheel',e=>{if(!WALK.on)return;e.preventDefault();const i=recent.indexOf(current);walkSelect((i<0?0:i)+(e.deltaY>0?1:-1));},{passive:false});
 // Tasten im Laufmodus (vor den übrigen Tastenkürzeln)
 addEventListener('keydown',e=>{
@@ -2366,6 +2387,8 @@ addEventListener('keydown',e=>{
   if(!WALK.on){if(e.code==='KeyF'&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!document.querySelector('.modal:not([hidden])')){e.preventDefault();enterWalk();}return;}
   e.stopImmediatePropagation();
   if(e.code==='KeyF'){e.preventDefault();exitWalk();return;}
+  if(e.code==='Escape'){e.preventDefault();if(playing())setPlaying(false);else lockPointer();return;}
+  if(!playing())return;
   if(/^Digit[1-9]$/.test(e.code)){walkSelect(+e.code.slice(5)-1);return;}
   if(e.code==='Space'){e.preventDefault();if(!e.repeat){const now=performance.now();if(now-WALK.lastJump<300){WALK.fly=!WALK.fly;WALK.vel.y=0;}WALK.lastJump=now;}}
   if(e.ctrlKey&&/^Key[ZY]$/.test(e.code)){e.preventDefault();e.code==='KeyZ'&&!e.shiftKey?undo():redo();return;}
