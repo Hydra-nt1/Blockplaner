@@ -114,6 +114,11 @@ img.ico{image-rendering:auto}
 .wp-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:min(420px,calc(100% - 32px));cursor:default}
 .wp-box strong{font-family:var(--f-display);font-size:18px;font-weight:500}
 .wp-box > span{color:var(--muted);font-size:13px}
+.sens{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;background:color-mix(in srgb,var(--ink) 5%,var(--raised));font-size:12.5px}
+.sens label:not(.chk){display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:center}
+.sens label:not(.chk) input{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.sens output{font-family:var(--f-mono);font-weight:600;font-variant-numeric:tabular-nums}
+.sens .btn{align-self:flex-start;padding:4px 10px;font-size:12px}
 .stage.walking .float{display:none}
 .stage.looking,.stage.looking canvas{cursor:none}
 .modesw{position:absolute;right:12px;top:12px;z-index:6;display:flex;padding:3px;gap:2px;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
@@ -366,6 +371,10 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
             <dt><kbd class="k">1</kbd>–<kbd class="k">9</kbd>, Mausrad</dt><dd>Block aus der Schnellleiste</dd>
             <dt><kbd class="k">Esc</kbd> / <kbd class="k">F</kbd></dt><dd>Pause mit Mauszeiger / zurück zu „Bauen &amp; Fliegen“</dd>
           </dl>
+<div class="sens">
+            <label><span>Mausempfindlichkeit beim Laufen</span><output data-out="look">100 %</output><input type="range" data-set="look" id="sensLook" min="10" max="300" step="5" value="100" aria-label="Mausempfindlichkeit beim Laufen"></label>
+            <label class="chk"><input type="checkbox" data-set="invert" id="sensInv"> Maus umkehren (oben und unten vertauscht)</label>
+          </div>
           <div class="row" style="margin:0;justify-content:center"><button class="btn primary" id="walkGo">Weiterlaufen</button><button class="btn" id="walkEnd">Laufmodus beenden</button></div>
         </div>
       </div>
@@ -511,8 +520,15 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
         <dt><kbd class="k">Strg</kbd>+<kbd class="k">Z</kbd> / <kbd class="k">Y</kbd></dt><dd>Rückgängig / Wiederholen</dd>
         <dt><kbd class="k">Esc</kbd></dt><dd>Quader abbrechen</dd>
       </dl>
+      <h3>Einstellungen</h3>
+      <div class="sens">
+            <label><span>Mausempfindlichkeit beim Laufen</span><output data-out="look">100 %</output><input type="range" data-set="look" id="sensLook2" min="10" max="300" step="5" value="100" aria-label="Mausempfindlichkeit beim Laufen"></label>
+            <label class="chk"><input type="checkbox" data-set="invert" id="sensInv2"> Maus umkehren (oben und unten vertauscht)</label>
+            <label><span>Drehgeschwindigkeit beim Bauen</span><output data-out="orbit">100 %</output><input type="range" data-set="orbit" id="sensOrbit" min="20" max="300" step="5" value="100" aria-label="Drehgeschwindigkeit beim Bauen"></label>
+          <button class="btn" type="button" id="sensReset">Zurücksetzen</button>
+          </div>
       <h3>Laufmodus</h3>
-      <p class="small">Mit dem Schalter oben in der Mitte (oder <kbd class="k">F</kbd>) wechselst du zwischen „Bauen &amp; Fliegen“ und „Laufen“. Im Laufmodus stehst du als Spieler in Augenhöhe auf der Baufläche und läufst durch deinen Bau wie im Spiel. Der Mauszeiger ist ausgeblendet, gezielt wird mit dem Fadenkreuz: Maus bewegen zum Umsehen, <kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd> laufen, Leertaste springen (doppelt tippen: fliegen), <kbd class="k">Strg</kbd> sprinten, <kbd class="k">Shift</kbd> schleichen. Wie im Spiel baut die linke Maustaste ab, die rechte setzt oder öffnet Türen, die mittlere nimmt einen Block auf. <kbd class="k">1</kbd>–<kbd class="k">9</kbd> und das Mausrad wählen aus der Schnellleiste. <kbd class="k">Esc</kbd> pausiert und zeigt den Mauszeiger, <kbd class="k">F</kbd> wechselt zurück zum Bauen.</p>
+      <p class="small">Mit dem Schalter oben rechts (oder <kbd class="k">F</kbd>) wechselst du zwischen „Bauen &amp; Fliegen“ und „Laufen“. Im Laufmodus stehst du als Spieler in Augenhöhe auf der Baufläche und läufst durch deinen Bau wie im Spiel. Der Mauszeiger ist ausgeblendet, gezielt wird mit dem Fadenkreuz: Maus bewegen zum Umsehen, <kbd class="k">W</kbd><kbd class="k">A</kbd><kbd class="k">S</kbd><kbd class="k">D</kbd> laufen, Leertaste springen (doppelt tippen: fliegen), <kbd class="k">Strg</kbd> sprinten, <kbd class="k">Shift</kbd> schleichen. Wie im Spiel baut die linke Maustaste ab, die rechte setzt oder öffnet Türen, die mittlere nimmt einen Block auf. <kbd class="k">1</kbd>–<kbd class="k">9</kbd> und das Mausrad wählen aus der Schnellleiste. <kbd class="k">Esc</kbd> pausiert und zeigt den Mauszeiger, <kbd class="k">F</kbd> wechselt zurück zum Bauen.</p>
       <h3>Benutzen</h3>
       <p class="small">Mit dem Hand-Werkzeug oder Strg+Klick öffnest und schließt du Türen, Falltüren, Zauntore und Fässer, legst Hebel um und schaltest Lampen, Kupferbirnen, Öfen, Lagerfeuer und Kerzen an. Bei Kerzen, Meeresgurken, Schildkröteneiern, Schnee, Blütenteppichen und Feldfrüchten änderst du die Anzahl oder das Wachstum. Klickst du eine Stufe auf eine gleiche Stufe, wird sie doppelt. Mit Shift änderst du die zweite Einstellung, etwa das Türscharnier oder die Kerzenanzahl.</p>
       <p class="small">Fackeln, Schilder, Korallenfächer, Köpfe, Knöpfe, Hebel und Glocken hängen an der Wand, wenn du auf eine Seitenfläche klickst. Laternen, Knöpfe, Hebel und Glocken hängen an der Decke, wenn du auf eine Unterseite klickst. Treppen bilden Innen- und Außenecken selbst.</p>
@@ -2193,6 +2209,20 @@ function moveCamera(dt){
   if(camera.position.y+mvec.y<.3)mvec.y=.3-camera.position.y;
   camera.position.add(mvec);controls.target.add(mvec);
 }
+/* ---------- Einstellungen: Mausempfindlichkeit (im Browser gespeichert) ---------- */
+const SET_DEF={look:1,invert:false,orbit:1};
+const SET={...SET_DEF};
+try{Object.assign(SET,JSON.parse(localStorage.getItem(STORE+'.settings'))||{});}catch(_){}
+function applySettings(){
+  controls.rotateSpeed=SET.orbit;
+  document.querySelectorAll('[data-set]').forEach(el=>{const k=el.dataset.set;if(el.type==='checkbox')el.checked=!!SET[k];else el.value=Math.round(SET[k]*100);});
+  document.querySelectorAll('[data-out]').forEach(o=>{o.textContent=Math.round(SET[o.dataset.out]*100)+' %';});
+  try{localStorage.setItem(STORE+'.settings',JSON.stringify(SET));}catch(_){}
+}
+document.querySelectorAll('[data-set]').forEach(el=>el.addEventListener('input',()=>{const k=el.dataset.set;SET[k]=el.type==='checkbox'?el.checked:+el.value/100;applySettings();}));
+$('#sensReset').addEventListener('click',()=>{Object.assign(SET,SET_DEF);applySettings();});
+applySettings();
+
 /* ---------- Laufmodus: als Spieler durch den Bau laufen ---------- */
 // Maße und Werte wie in Minecraft (Augenhöhe 1,62, Breite 0,6, Höhe 1,8, Schritthöhe 0,6)
 const WALK={on:false,pos:new THREE.Vector3(),vel:new THREE.Vector3(),yaw:0,pitch:0,ground:false,fly:false,lastJump:0,saved:null,slot:0,locked:false,drag:null,sneak:false,sprint:false};
@@ -2369,7 +2399,8 @@ addEventListener('mousemove',e=>{
   if(!playing())return;
   const dx=e.movementX||0,dy=e.movementY||0;
   if(Math.abs(dx)>300||Math.abs(dy)>300)return; // Sprünge beim Einfangen ignorieren
-  WALK.yaw-=dx*.0025;WALK.pitch=Math.max(-1.55,Math.min(1.55,WALK.pitch-dy*.0025));
+  const k=.0025*SET.look;
+  WALK.yaw-=dx*k;WALK.pitch=Math.max(-1.55,Math.min(1.55,WALK.pitch-dy*k*(SET.invert?-1:1)));
 });
 cv.addEventListener('mousedown',e=>{
   if(!WALK.on)return;
