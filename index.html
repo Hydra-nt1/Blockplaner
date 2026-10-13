@@ -93,6 +93,14 @@ img.ico{image-rendering:auto}
 .layers .lbl{font-family:var(--f-display);font-size:14px}
 .layers input[type=range]{flex:1;min-width:110px;accent-color:var(--accent)}
 .layers output{font-family:var(--f-mono);font-size:12.5px;font-weight:600;min-width:76px;text-align:right;font-variant-numeric:tabular-nums}
+.selbar{left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;padding:6px 8px;max-width:calc(100% - 24px);z-index:5}
+.selbar[hidden]{display:none}
+.selbar .btn{padding:5px 10px;font-size:13px}
+.selbar .btn[hidden]{display:none}
+.selbar .btn.danger{color:var(--danger)}
+.selbar .btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.selbar .si{font-family:var(--f-mono);font-size:12.5px;font-weight:600;padding:0 4px;white-space:nowrap}
+@media (max-width:860px){.selbar{bottom:170px}}
 .chk{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer}
 .chk input{accent-color:var(--accent)}
 .loading[hidden]{display:none}
@@ -344,6 +352,7 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       <button class="tool" data-tool="place" title="Setzen (2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="1.5"/><path d="M12 8.5v7M8.5 12h7"/></svg><kbd>2</kbd></button>
       <button class="tool" data-tool="break" title="Abbauen (3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M4 9c4-5 12-5 16 0"/><path d="M12 6.5 6 20"/><path d="M8.2 15l3 1.3"/></svg><kbd>3</kbd></button>
       <button class="tool" data-tool="box" title="Quader füllen (4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12 4 7.5"/></svg><kbd>4</kbd></button>
+      <button class="tool" data-tool="select" title="Markieren: mehrere Blöcke löschen, ersetzen, kopieren oder verschieben (7)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><rect x="3.5" y="3.5" width="13" height="13" rx="1" stroke-dasharray="2.6 2.4"/><path d="m12.5 12.5 8 3.2-3.4 1.4-1.4 3.4z"/></svg><kbd>7</kbd></button>
       <button class="tool" data-tool="pick" title="Block aufnehmen (5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="m14 4.5 5.5 5.5-2.2 2.2-5.5-5.5z"/><path d="m12.5 8.5-7 7V19h3.5l7-7"/></svg><kbd>5</kbd></button>
       <button class="tool" data-tool="use" title="Benutzen: Türen öffnen, Hebel umlegen … (6, oder Strg+Klick)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v6.5"/><path d="M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13"/><path d="M17 11.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-1.5a6 6 0 0 1-4.6-2.2L4.5 15.6a1.5 1.5 0 0 1 2.3-1.9L8 15"/></svg><kbd>6</kbd></button>
       <hr>
@@ -398,6 +407,16 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
           <button class="btn" id="rvSnap">Standbild übernehmen</button>
         </span>
       </div>
+    </div>
+    <div class="float selbar" id="selBar" hidden>
+      <span class="si" id="selInfo"></span>
+      <button class="btn" data-sel="range" aria-pressed="false" title="Nächster Klick markiert alles zwischen dem letzten und diesem Block (oder Shift+Klick)">Bereich</button>
+      <button class="btn danger" data-sel="del" title="Markierte Blöcke löschen (Entf)">Löschen</button>
+      <button class="btn" data-sel="rep" title="Markierte Blöcke durch den gewählten Block ersetzen">Ersetzen</button>
+      <button class="btn" data-sel="copy" title="Kopieren und an neuer Stelle einfügen (Strg+C)">Kopieren</button>
+      <button class="btn" data-sel="cut" title="Verschieben: ausschneiden und an neuer Stelle absetzen (Strg+X)">Verschieben</button>
+      <button class="btn" data-sel="paste" title="Zuletzt Kopiertes einfügen (Strg+V)">Einfügen</button>
+      <button class="btn" data-sel="none" title="Esc">Aufheben</button>
     </div>
     <div class="float layers">
       <label class="lbl" for="layer">Ebene</label>
@@ -513,12 +532,15 @@ kbd.k{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);bord
       <dl class="keys">
         <dt><kbd class="k">W</kbd> <kbd class="k">A</kbd> <kbd class="k">S</kbd> <kbd class="k">D</kbd></dt><dd>Bewegen (auch Pfeiltasten), die Maus bleibt Zeiger</dd>
         <dt><kbd class="k">Leertaste</kbd> / <kbd class="k">Q</kbd></dt><dd>Hoch / runter (auch <kbd class="k">E</kbd> für hoch)</dd>
-        <dt><kbd class="k">1</kbd> – <kbd class="k">6</kbd></dt><dd>Werkzeug wählen (6 = Benutzen)</dd>
+        <dt><kbd class="k">1</kbd> – <kbd class="k">7</kbd></dt><dd>Werkzeug wählen (6 = Benutzen, 7 = Markieren)</dd>
         <dt><kbd class="k">Strg</kbd> + Klick</dt><dd>Block benutzen: Tür öffnen, Hebel umlegen, Lampe an …</dd>
         <dt><kbd class="k">R</kbd></dt><dd>Ausrichtung des nächsten Blocks drehen</dd>
         <dt><kbd class="k">[</kbd> <kbd class="k">]</kbd></dt><dd>Ebene runter / hoch</dd>
         <dt><kbd class="k">Strg</kbd>+<kbd class="k">Z</kbd> / <kbd class="k">Y</kbd></dt><dd>Rückgängig / Wiederholen</dd>
-        <dt><kbd class="k">Esc</kbd></dt><dd>Quader abbrechen</dd>
+        <dt><kbd class="k">Esc</kbd></dt><dd>Quader abbrechen, Markierung aufheben</dd>
+        <dt><kbd class="k">Entf</kbd></dt><dd>Markierte Blöcke löschen</dd>
+        <dt><kbd class="k">Strg</kbd>+<kbd class="k">C</kbd> / <kbd class="k">X</kbd> / <kbd class="k">V</kbd></dt><dd>Markierung kopieren / verschieben / einfügen</dd>
+        <dt><kbd class="k">Strg</kbd>+<kbd class="k">A</kbd></dt><dd>Alle sichtbaren Blöcke markieren</dd>
       </dl>
       <h3>Einstellungen</h3>
       <div class="sens">
@@ -1129,6 +1151,7 @@ function rebuild(){
     below.forEach(([x,y,z],i)=>{m4.makeTranslation(x+.5,y+.5,z+.5);under.setMatrixAt(i,m4);});
     under.frustumCulled=false;scene.add(under);
   }
+  renderSelection();
   if(window.rebuildBP)rebuildBP();
 }
 
@@ -1188,10 +1211,12 @@ const HINTS={
   box:'Erste Ecke anklicken · mit Shift wird der Bereich geleert',
   boxB:'Zweite Ecke anklicken · Esc bricht ab',
   pick:'Klick auf einen Block übernimmt seinen Typ',
-  use:'Klick: öffnen/schließen, an/aus, Anzahl · Shift+Klick: zweite Einstellung (z. B. Türscharnier)'
+  use:'Klick: öffnen/schließen, an/aus, Anzahl · Shift+Klick: zweite Einstellung (z. B. Türscharnier)',
+  select:'Klick: Block markieren/abwählen · Shift+Klick: Bereich bis hier · Entf: löschen · Esc: aufheben',
+  paste:'Klick: hier einfügen · R: drehen · Esc oder Rechtsklick: fertig'
 };
-function setTool(t){tool=t;boxStart=null;document.querySelectorAll('.tool[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===t));updateHint();if(lastEvent)hover(lastEvent);else clearHover();}
-function updateHint(){$('#hint').textContent=tool==='box'&&boxStart?HINTS.boxB:HINTS[tool];}
+function setTool(t){tool=t;boxStart=null;if(t!=='select'&&pasting)stopPaste();document.querySelectorAll('.tool[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool===t));updateHint();if(lastEvent)hover(lastEvent);else clearHover();}
+function updateHint(){$('#hint').textContent=pasting?HINTS.paste:tool==='box'&&boxStart?HINTS.boxB:HINTS[tool];updateSelBar();}
 document.querySelectorAll('.tool[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
 const DIRNAME=['Süden','Osten','Norden','Westen'];
 // Wie im Spiel: Treppen, Betten, Türen, Zauntore … zeigen in Blickrichtung, Ambosse quer dazu, die meisten Blöcke zum Spieler
@@ -1376,7 +1401,7 @@ function useBlock(pos,alt){
 function effTool(e,btn=0){
   if(btn===2)return tool==='view'?'view':'break';
   if(btn===1)return'pick';
-  if((e.ctrlKey||e.metaKey)&&tool!=='view')return'use';
+  if((e.ctrlKey||e.metaKey)&&tool!=='view'&&tool!=='select')return'use';
   if(tool==='view')return'view';if(e.altKey)return'pick';if(e.shiftKey&&tool==='place')return'break';return tool;
 }
 /* Halbdurchsichtige Vorschau des Blocks an der Stelle, wo er landen wird */
@@ -1427,14 +1452,18 @@ function hover(e){
   if(t==='place'){const pl=placement(p);if(pl){target=pl[0][2];showPreview(pl);}ghost.visible=false;}
   else if(t==='break'||t==='pick'||t==='use'){target=p&&p.block;if(target&&t!=='pick'){const g=groupKeys(K(...target)).map(parse);if(g.length>1){target=g[0];target2=g[g.length-1];}}}
   else if(t==='box')target=boxTarget(p,e);
+  else if(t==='select'){selHover(p,e);return;}
   if(t==='box'&&boxStart)showGhost(boxStart,target||boxStart,e.shiftKey);
   else if(t!=='place')showGhost(target,target2,t==='break');
   const c=target||(p&&p.block);
   $('#coords').textContent=c?`X ${c[0]}  Y ${c[1]}  Z ${c[2]}`+(p&&p.block&&t!=='place'?'  · '+nameAt(p.block):''):'';
 }
 function act(e,btn=0){
+  if(pasting&&btn===2){stopPaste();return;}
   const t=effTool(e,btn);if(t==='view')return;
-  const p=pick(e);if(!p)return;
+  const p=pick(e);
+  if(t==='select'){if(pasting)pasteAt(p);else selectAt(p,e);hover(e);return;}
+  if(!p)return;
   if(t==='place'){const pl=placement(p);if(pl)apply(pl.map(([k,v])=>[k,v]));else if(DEF[current].extras&&canPlace(p.place))flashMsg('Hier ist nicht genug Platz für den ganzen Block.');}
   else if(t==='use'){if(p.block)useBlock(p.block,e.shiftKey);}
   else if(t==='break'){if(p.block)apply(groupKeys(K(...p.block)).map(k=>[k,null]));}
@@ -1461,6 +1490,143 @@ function act(e,btn=0){
   hover(e);
 }
 function flashMsg(t){const h=$('#hint');h.textContent=t;setTimeout(updateHint,2600);}
+
+/* ---------- Markieren: mehrere Blöcke auf einmal löschen, ersetzen, kopieren, verschieben ---------- */
+// var statt let: rebuild() läuft beim Start schon, bevor dieser Abschnitt ausgeführt ist
+var selection=null,selAnchor=null,selRange=false,clip=null,pasting=false,selMesh=null,selLines=null,selMats=null;
+selection=new Set();
+const MAXSEL=40000;
+function renderSelection(){
+  if(!selection)return;
+  if(!selMats)selMats=[new THREE.MeshBasicMaterial({color:0x3a8ee6,transparent:true,opacity:.2,depthWrite:false}),new THREE.LineBasicMaterial({color:0x3a8ee6,transparent:true,opacity:.95,depthTest:false})];
+  if(selMesh){scene.remove(selMesh);selMesh.dispose();selMesh=null;}
+  if(selLines){scene.remove(selLines);selLines.geometry.dispose();selLines=null;}
+  for(const k of selection)if(!world.has(k))selection.delete(k);
+  const keys=[...selection].filter(k=>visible(parse(k)[1]));
+  if(keys.length){
+    const E=new THREE.EdgesGeometry(cubeGeo).attributes.position.array,pos=new Float32Array(keys.length*E.length);
+    selMesh=new THREE.InstancedMesh(cubeGeo,selMats[0],keys.length);
+    keys.forEach((k,i)=>{
+      const[x,y,z]=parse(k);m4.makeScale(1.01,1.01,1.01);m4.setPosition(x+.5,y+.5,z+.5);selMesh.setMatrixAt(i,m4);
+      for(let j=0;j<E.length;j+=3){const o=i*E.length+j;pos[o]=x+.5+E[j]*1.012;pos[o+1]=y+.5+E[j+1]*1.012;pos[o+2]=z+.5+E[j+2]*1.012;}
+    });
+    selMesh.frustumCulled=false;selMesh.renderOrder=18;scene.add(selMesh);
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    selLines=new THREE.LineSegments(g,selMats[1]);selLines.frustumCulled=false;selLines.renderOrder=22;scene.add(selLines);
+  }
+  updateSelBar();
+}
+// Gezählt wird je Gegenstand (Tür = 1), nicht je Zelle
+const selCount=()=>{let n=0;for(const k of selection){const v=world.get(k);if(v&&!val(v).k)n++;}return n;};
+function updateSelBar(){
+  const bar=$('#selBar');if(!bar||!selection)return;
+  const n=selCount();
+  bar.hidden=!(n||pasting||(tool==='select'&&clip));
+  if(bar.hidden)return;
+  $('#selInfo').textContent=pasting?`${clip.cut?'Verschieben':'Einfügen'}: ${clip.n.toLocaleString('de-DE')} Blöcke`:n?`${n.toLocaleString('de-DE')} markiert`:'Nichts markiert';
+  bar.querySelectorAll('[data-sel]').forEach(b=>{const a=b.dataset.sel;b.hidden=pasting?a!=='none':a==='paste'?!clip:a==='range'?tool!=='select':!n;});
+  bar.querySelector('[data-sel=none]').textContent=pasting?'Fertig':'Aufheben';
+  bar.querySelector('[data-sel=range]').setAttribute('aria-pressed',selRange);
+}
+function selAdd(keys,on=true){for(const k of keys)for(const g of groupKeys(k))on?selection.add(g):selection.delete(g);}
+function selectAt(p,e){
+  if(!p||!p.block){if(!e.shiftKey&&!selRange){selection.clear();selAnchor=null;renderSelection();}return;}
+  const c=p.block,k=K(...c);
+  if((e.shiftKey||selRange)&&selAnchor){
+    const mn=selAnchor.map((v,i)=>Math.min(v,c[i])),mx=selAnchor.map((v,i)=>Math.max(v,c[i]));
+    if((mx[0]-mn[0]+1)*(mx[1]-mn[1]+1)*(mx[2]-mn[2]+1)>MAXSEL*8){flashMsg('Der Bereich ist zu groß.');return;}
+    for(let x=mn[0];x<=mx[0];x++)for(let y=mn[1];y<=mx[1];y++)for(let z=mn[2];z<=mx[2];z++){const kk=K(x,y,z);if(visible(y)&&world.has(kk))selAdd([kk]);}
+    selRange=false;
+  }else selAdd([k],!selection.has(k));
+  selAnchor=c;renderSelection();
+}
+function selHover(p,e){
+  if(pasting){
+    const pl=pastePlan(p);
+    if(pl&&pl.length&&pl.length<=1500){showPreview(pl);ghost.visible=false;}
+    else{preview.visible=false;if(pl&&pl.length){const ps=pl.map(q=>q[2]);showGhost([0,1,2].map(i=>ps.reduce((m,q)=>Math.min(m,q[i]),1e9)),[0,1,2].map(i=>ps.reduce((m,q)=>Math.max(m,q[i]),-1e9)));}else ghost.visible=false;}
+    $('#coords').textContent=p&&p.place?`X ${p.place[0]}  Y ${p.place[1]}  Z ${p.place[2]}`:'';
+    return;
+  }
+  const t=p&&p.block;
+  if(t&&(e.shiftKey||selRange)&&selAnchor)showGhost(selAnchor,t);else showGhost(t);
+  $('#coords').textContent=t?`X ${t[0]}  Y ${t[1]}  Z ${t[2]}  · ${nameAt(t)}`:'';
+}
+function selectAll(){
+  selection.clear();for(const k of world.keys()){if(visible(parse(k)[1]))selection.add(k);if(selection.size>=MAXSEL*4)break;}
+  if(tool!=='select')setTool('select');renderSelection();
+}
+const selCells=()=>[...selection].filter(k=>world.has(k));
+function selDelete(){
+  const n=selCount(),ks=selCells();if(!ks.length)return;
+  apply(ks.map(k=>[k,null]));selection.clear();renderSelection();
+  flashMsg(`${n.toLocaleString('de-DE')} Blöcke gelöscht · Strg+Z macht es rückgängig`);
+}
+// Markierte Blöcke durch den gewählten Block ersetzen (Drehung und obere Hälfte bleiben, wo es passt)
+function selReplace(){
+  const d=DEF[current];
+  if(d.extras){flashMsg('Mehrteilige Blöcke wie Türen und Betten bitte einzeln setzen.');return;}
+  const ch=[];
+  for(const k of selCells()){
+    const o=val(world.get(k));
+    if(o.k){ch.push([k,null]);continue;}
+    ch.push([k,enc(current,fixedRot(d)?0:o.r,d.flags&4?o.f:0,0,0,0,o.id===current?o.o:0)]);
+  }
+  apply(ch);flashMsg(`Durch ${d.name} ersetzt`);
+}
+function selCopy(cut){
+  const ks=selCells();if(!ks.length)return;
+  const ps=ks.map(parse),mn=[0,1,2].map(i=>ps.reduce((m,p)=>Math.min(m,p[i]),1e9));
+  clip={cells:ks.map((k,i)=>[ps[i][0]-mn[0],ps[i][1]-mn[1],ps[i][2]-mn[2],world.get(k)]),n:selCount(),cut};
+  if(cut)apply(ks.map(k=>[k,null]));
+  selection.clear();renderSelection();startPaste();
+}
+// Einfügen: die Kopie hängt am Mauszeiger, Klick setzt sie ab (untere Ecke an der Zielstelle)
+function startPaste(){if(!clip)return;pasting=true;previewKey='';if(tool!=='select'){tool='select';boxStart=null;document.querySelectorAll('.tool[data-tool]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.tool==='select'));}updateHint();if(lastEvent)hover(lastEvent);}
+function stopPaste(){if(!pasting)return;pasting=false;if(clip)clip.cut=false;preview.visible=false;previewKey='';updateHint();}
+function pastePlan(p){
+  if(!clip||!p||!p.place)return null;const b=p.place;
+  return clip.cells.map(([dx,dy,dz,v])=>{const c=[b[0]+dx,b[1]+dy,b[2]+dz];return[K(...c),v,c];}).filter(q=>inBounds(q[2]));
+}
+function pasteAt(p){
+  const pl=pastePlan(p);if(!pl||!pl.length)return;
+  const tgt=new Set(pl.map(q=>q[0])),ch=[],gone=new Set();
+  // Überschriebene mehrteilige Blöcke ganz entfernen, damit keine halben Türen übrig bleiben
+  for(const[k]of pl)if(world.has(k))for(const g of groupKeys(k))if(!tgt.has(g)&&!gone.has(g)){gone.add(g);ch.push([g,null]);}
+  for(const[k,v]of pl)ch.push([k,v]);
+  apply(ch);
+  const moved=clip.cut;
+  selection.clear();pl.forEach(q=>selection.add(q[0]));renderSelection();
+  if(moved)stopPaste();
+  flashMsg(moved?'Verschoben · die Blöcke bleiben markiert':`${clip.n.toLocaleString('de-DE')} Blöcke eingefügt · weiter klicken für mehr Kopien, Esc beendet`);
+}
+// Kopie um 90° drehen: Positionen, Blickrichtung, Stammachse und Schienenform
+const RROT={north:'west',west:'south',south:'east',east:'north'};
+function rotRail(nm){
+  if(nm.startsWith('ascending_'))return'ascending_'+RROT[nm.slice(10)];
+  const s=nm.split('_').map(x=>RROT[x]);
+  if(s.includes('north')&&s.includes('south'))return'north_south';
+  if(s.includes('east')&&s.includes('west'))return'east_west';
+  return s.find(x=>x==='north'||x==='south')+'_'+s.find(x=>x==='east'||x==='west');
+}
+function rotVal(v){
+  const o=val(v),d=DEF[o.id];if(!d)return v;let r=o.r,oo=o.o;
+  if(d.O&&d.O.prop==='axis'){const nm=d.O.names[oo];if(nm==='x'||nm==='z')oo=d.O.names.indexOf(nm==='x'?'z':'x');}
+  else if(d.O&&d.O.prop==='shape')oo=Math.max(0,d.O.names.indexOf(rotRail(d.O.names[oo]||d.O.names[0])));
+  else if(!fixedRot(d))r=(r+1)%4;
+  return enc(o.id,r,o.f,o.k,o.s,o.a,oo);
+}
+function rotClip(){
+  if(!clip)return;
+  const cs=clip.cells.map(([x,y,z,v])=>[z,y,-x,rotVal(v)]);
+  const mx=cs.reduce((m,c)=>Math.min(m,c[0]),1e9),mz=cs.reduce((m,c)=>Math.min(m,c[2]),1e9);
+  clip.cells=cs.map(([x,y,z,v])=>[x-mx,y,z-mz,v]);previewKey='';if(lastEvent)hover(lastEvent);
+}
+$('#selBar').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sel]');if(!b)return;
+  ({range:()=>{selRange=!selRange;updateSelBar();},del:selDelete,rep:selReplace,copy:()=>selCopy(false),cut:()=>selCopy(true),paste:startPaste,
+    none:()=>{if(pasting)stopPaste();else{selection.clear();selRange=false;renderSelection();}}})[b.dataset.sel]();
+});
 
 // Klick oder Ziehen? Die Kamera bewegt sich erst, wenn die Maus spürbar gezogen wird,
 // damit ein leicht verwackelter Klick nicht die Ansicht dreht statt zu bauen.
@@ -1571,7 +1737,7 @@ function saveNow(){clearTimeout(saveT);const old=store.projects[store.current]||
 function uniqueName(base){if(!store.projects[base])return base;let i=2;while(store.projects[`${base} ${i}`])i++;return`${base} ${i}`;}
 function openProject(name,reframe=true){
   store.current=name;world=deserialize(store.projects[name]);
-  undoStack.length=0;redoStack.length=0;boxStart=null;follow=true;
+  undoStack.length=0;redoStack.length=0;boxStart=null;if(selection)selection.clear();if(pasting)stopPaste();follow=true;
   $('#projName').value=name;saveStore();
   updateLayerRange();placeGrid();rebuild();renderMats();updateStats();updateHistBtns();renderProjects();updateHint();
   if(reframe)frame('iso');
@@ -1692,10 +1858,17 @@ addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
   if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return;}
+  if((e.ctrlKey||e.metaKey)&&!(window.WALK&&WALK.on)){
+    if(k==='c'&&selection.size){e.preventDefault();selCopy(false);return;}
+    if(k==='x'&&selection.size){e.preventDefault();selCopy(true);return;}
+    if(k==='v'&&clip){e.preventDefault();startPaste();return;}
+    if(k==='a'){e.preventDefault();selectAll();return;}
+  }
   if(e.ctrlKey||e.metaKey||e.altKey)return;
-  const t={'1':'view','2':'place','3':'break','4':'box','5':'pick','6':'use'}[e.key];if(t){setTool(t);return;}
-  if(k==='r'){rotate();return;}
-  if(e.key==='Escape'){boxStart=null;updateHint();if(lastEvent)hover(lastEvent);}
+  const t={'1':'view','2':'place','3':'break','4':'box','5':'pick','6':'use','7':'select'}[e.key];if(t){setTool(t);return;}
+  if(k==='r'){if(pasting)rotClip();else rotate();return;}
+  if((e.key==='Delete'||e.key==='Backspace')&&selection.size){e.preventDefault();selDelete();return;}
+  if(e.key==='Escape'){boxStart=null;selRange=false;if(pasting)stopPaste();else if(selection.size){selection.clear();renderSelection();}updateHint();if(lastEvent)hover(lastEvent);}
   if(e.key==='[')setLayer(layer-1);if(e.key===']')setLayer(layer+1);
 });
 addEventListener('keyup',e=>{if(e.key==='Shift'&&lastEvent)hover({clientX:lastEvent.clientX,clientY:lastEvent.clientY,shiftKey:false,altKey:false});});
